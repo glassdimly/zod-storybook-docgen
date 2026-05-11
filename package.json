@@ -1,16 +1,16 @@
 {
   "name": "zod-storybook-docgen",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Auto-generate Storybook argTypes from Zod schemas. Fills the gap where react-docgen can't understand z.infer<typeof schema>.",
   "license": "MIT",
-  "author": "Jeremy John <glassdimly@gmail.com> (https://github.com/glassdimlygr)",
+  "author": "Jeremy John <glassdimly@gmail.com> (https://github.com/glassdimly)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/glassdimlygr/zod-storybook-docgen.git"
+    "url": "https://github.com/glassdimly/zod-storybook-docgen.git"
   },
-  "homepage": "https://github.com/glassdimlygr/zod-storybook-docgen#readme",
+  "homepage": "https://github.com/glassdimly/zod-storybook-docgen#readme",
   "bugs": {
-    "url": "https://github.com/glassdimlygr/zod-storybook-docgen/issues"
+    "url": "https://github.com/glassdimly/zod-storybook-docgen/issues"
   },
   "keywords": [
     "storybook",
