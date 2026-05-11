@@ -1,0 +1,59 @@
+{
+  "name": "zod-storybook-docgen",
+  "version": "0.1.0",
+  "description": "Auto-generate Storybook argTypes from Zod schemas. Fills the gap where react-docgen can't understand z.infer<typeof schema>.",
+  "license": "MIT",
+  "author": "Jeremy John <glassdimly@gmail.com> (https://github.com/glassdimlygr)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/glassdimlygr/zod-storybook-docgen.git"
+  },
+  "homepage": "https://github.com/glassdimlygr/zod-storybook-docgen#readme",
+  "bugs": {
+    "url": "https://github.com/glassdimlygr/zod-storybook-docgen/issues"
+  },
+  "keywords": [
+    "storybook",
+    "zod",
+    "argTypes",
+    "docgen",
+    "controls",
+    "addon",
+    "react",
+    "schema"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0",
+    "zod": "^3.25.0"
+  }
+}
