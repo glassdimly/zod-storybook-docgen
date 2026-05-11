@@ -77,6 +77,83 @@ export default MyButton;
 
 That's it. Storybook will now show controls, types, defaults, and descriptions for all props defined in the schema.
 
+### 3. Add descriptions with `.describe()`
+
+Zod's built-in `.describe()` method is how you add prop descriptions that appear in Storybook's docs table:
+
+```ts
+const schema = z.object({
+  title: z.string().describe('The heading text displayed at the top'),
+  count: z.number().optional().describe('Number of items to display'),
+});
+```
+
+The enhancer reads `.describe()` from any position in the chain — before or after `.optional()`, `.default()`, etc.
+
+## Migration: JSDoc to `.describe()`
+
+If your codebase already has JSDoc comments above Zod schema properties, the included **one-time migration script** converts them into `.describe()` calls automatically.
+
+### Before migration
+
+```ts
+const schema = z.object({
+  /**
+   * Array of title / content pair in obj from cms.
+   */
+  accordionItems: z.array(accordionItemSchema),
+  /** Optionally displays border around each accordion item. */
+  showBorder: z.boolean().optional(),
+});
+```
+
+JSDoc comments are stripped by the compiler — Storybook never sees them at runtime.
+
+### After migration
+
+```ts
+const schema = z.object({
+  /**
+   * Array of title / content pair in obj from cms.
+   */
+  accordionItems: z.array(accordionItemSchema).describe('Array of title / content pair in obj from cms.'),
+  /** Optionally displays border around each accordion item. */
+  showBorder: z.boolean().optional().describe('Optionally displays border around each accordion item.'),
+});
+```
+
+The JSDoc comments are preserved (for IDE hover tooltips), and `.describe()` makes the same text available at runtime for Storybook.
+
+### Running the migration
+
+```bash
+# Preview changes without modifying files
+npx zod-storybook-docgen migrate 'src/**/*.{ts,tsx}' --dry-run
+
+# Apply changes
+npx zod-storybook-docgen migrate 'src/**/*.{ts,tsx}'
+
+# Monorepo example
+npx zod-storybook-docgen migrate 'packages/**/src/**/*.{ts,tsx}'
+```
+
+The script:
+
+1. Parses each file's AST (supports TypeScript + JSX)
+2. Finds `z.object({...})` calls (any receiver name — `z`, `zod`, etc.)
+3. For each property with a leading `/** ... */` comment, appends `.describe('...')` if not already present
+4. Writes the modified file back (or prints a summary in `--dry-run` mode)
+
+**It's safe to run multiple times** — properties that already have `.describe()` are skipped.
+
+### Programmatic API
+
+```ts
+import { migrateSource } from 'zod-storybook-docgen/migrate';
+
+const { output, changes } = migrateSource(sourceCode, 'MyComponent.tsx');
+```
+
 ## How It Works
 
 The enhancer runs as a Storybook `argTypesEnhancer`. For each story, it:
@@ -109,7 +186,7 @@ The enhancer runs as a Storybook `argTypesEnhancer`. For each story, it:
 | Wrapper | Effect |
 |---|---|
 | `.optional()` | Field marked as not required |
-| `.nullable()` | Type summary appended with `\| null`; field still required |
+| `.nullable()` | Type summary appended with `| null`; field still required |
 | `.default(v)` | Field marked as not required; default value shown |
 | `.describe(s)` | Description added to docs |
 | `.refine()` / `.transform()` | Unwrapped to inner type |
@@ -140,10 +217,21 @@ export default {
 };
 ```
 
+### `migrateSource(source, filename)`
+
+Transform a source string, converting JSDoc comments on Zod properties into `.describe()` calls. Returns the modified source and number of changes.
+
+```ts
+import { migrateSource } from 'zod-storybook-docgen/migrate';
+
+const { output, changes } = migrateSource(code, 'schema.ts');
+```
+
 ### Types
 
 ```ts
 import type { ArgType, ArgTypes, StoryContext } from 'zod-storybook-docgen';
+import type { MigrateResult } from 'zod-storybook-docgen/migrate';
 ```
 
 ## Integration with FCWithZodSchema

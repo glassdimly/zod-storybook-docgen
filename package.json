@@ -1,6 +1,6 @@
 {
   "name": "zod-storybook-docgen",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Auto-generate Storybook argTypes from Zod schemas. Fills the gap where react-docgen can't understand z.infer<typeof schema>.",
   "license": "MIT",
   "author": "Jeremy John <glassdimly@gmail.com> (https://github.com/glassdimly)",
@@ -20,7 +20,9 @@
     "controls",
     "addon",
     "react",
-    "schema"
+    "schema",
+    "codemod",
+    "migration"
   ],
   "type": "module",
   "exports": {
@@ -28,7 +30,14 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./migrate": {
+      "types": "./dist/migrate.d.ts",
+      "import": "./dist/migrate.js"
     }
+  },
+  "bin": {
+    "zod-storybook-docgen": "./dist/cli.js"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -47,6 +56,11 @@
   },
   "peerDependencies": {
     "zod": "^3.0.0"
+  },
+  "dependencies": {
+    "@babel/parser": "^7.29.3",
+    "fast-glob": "^3.3.3",
+    "magic-string": "^0.30.21"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

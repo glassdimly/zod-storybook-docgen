@@ -199,17 +199,10 @@ describe('zodSchemaToArgTypes', () => {
     expect(result.name.control).toEqual({ type: 'text' });
   });
 
-  it('returns empty and warns for non-ZodObject schemas', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
+  it('returns empty for non-ZodObject schemas', () => {
     const result = zodSchemaToArgTypes(z.string());
 
     expect(result).toEqual({});
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('ZodString schema instead of ZodObject'),
-    );
-
-    warnSpy.mockRestore();
   });
 
   it('handles z.nativeEnum', () => {

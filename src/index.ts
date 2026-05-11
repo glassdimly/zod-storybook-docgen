@@ -305,13 +305,6 @@ export function zodSchemaToArgTypes(schema: ZodTypeAny): ArgTypes {
     (inner?._def?.shape as (() => Record<string, ZodTypeAny>) | undefined)?.();
 
   if (!shape) {
-    const typeName = inner?._def?.typeName as string | undefined;
-    if (typeName && typeName !== 'ZodObject') {
-      console.warn(
-        `[zod-storybook-docgen] zodSchemaToArgTypes received a ${typeName} schema instead ` +
-          'of ZodObject — only z.object() schemas generate argTypes. Returning empty.',
-      );
-    }
     return {};
   }
 
