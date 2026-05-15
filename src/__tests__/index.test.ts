@@ -334,4 +334,80 @@ describe('zodArgTypesEnhancer', () => {
 
     expect(result).toEqual({});
   });
+
+  it('generates argTypes from zodSchema in parameters (fallback)', () => {
+    const schema = z.object({
+      title: z.string().describe('The heading'),
+      enabled: z.boolean(),
+    });
+
+    const context: StoryContext = {
+      component: {},
+      parameters: { zodSchema: schema },
+      argTypes: {},
+    };
+
+    const result = zodArgTypesEnhancer(context);
+
+    expect(result.title).toBeDefined();
+    expect(result.title.control).toEqual({ type: 'text' });
+    expect(result.title.description).toBe('The heading');
+    expect(result.enabled).toBeDefined();
+    expect(result.enabled.control).toEqual({ type: 'boolean' });
+  });
+
+  it('prefers component.zodSchema over parameters.zodSchema', () => {
+    const componentSchema = z.object({
+      fromComponent: z.string(),
+    });
+    const paramSchema = z.object({
+      fromParams: z.string(),
+    });
+
+    const MyComponent = () => null;
+    (MyComponent as Record<string, unknown>).zodSchema = componentSchema;
+
+    const context: StoryContext = {
+      component: MyComponent as StoryContext['component'],
+      parameters: { zodSchema: paramSchema },
+      argTypes: {},
+    };
+
+    const result = zodArgTypesEnhancer(context);
+
+    expect(result.fromComponent).toBeDefined();
+    expect(result.fromParams).toBeUndefined();
+  });
+
+  it('uses parameters.zodSchema when component has no zodSchema', () => {
+    const schema = z.object({
+      name: z.string(),
+    });
+
+    const MyComponent = () => null;
+
+    const context: StoryContext = {
+      component: MyComponent as StoryContext['component'],
+      parameters: { zodSchema: schema },
+      argTypes: {},
+    };
+
+    const result = zodArgTypesEnhancer(context);
+
+    expect(result.name).toBeDefined();
+    expect(result.name.control).toEqual({ type: 'text' });
+  });
+
+  it('returns existing argTypes when neither component nor parameters have zodSchema', () => {
+    const existing = { name: { control: { type: 'text' } } };
+    const context: StoryContext = {
+      component: {},
+      parameters: { someOtherParam: true },
+      argTypes: existing,
+    };
+
+    const result = zodArgTypesEnhancer(context);
+
+    expect(result).toBe(existing);
+  });
 });

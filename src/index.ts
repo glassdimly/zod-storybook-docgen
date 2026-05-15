@@ -7,11 +7,36 @@
  * @see https://storybook.js.org/docs/api/arg-types
  */
 
-import type { ZodTypeAny, ZodObject } from 'zod';
+import type { FC } from 'react';
+import type { ZodTypeAny, ZodObject, ZodType, ZodRawShape } from 'zod';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+/**
+ * A React function component with an attached Zod schema for automatic
+ * Storybook argType generation.
+ *
+ * Use this type when you want to attach `.zodSchema` directly to a component
+ * so the enhancer discovers it automatically — no per-story wiring needed.
+ *
+ * @template P - The component's props type (typically `z.infer<typeof schema>`)
+ * @template S - The Zod schema type (defaults to `ZodType<P>`)
+ *
+ * @example
+ * ```ts
+ * import type { FCWithZodSchema } from 'zod-storybook-docgen';
+ *
+ * const MyButton: FCWithZodSchema<Props, typeof propsSchema> = (props) => (
+ *   <button>{props.label}</button>
+ * );
+ * MyButton.zodSchema = propsSchema;
+ * ```
+ */
+export type FCWithZodSchema<P = object, S extends ZodType = ZodType<P>> = FC<P> & {
+  zodSchema: S;
+};
 
 /** Storybook argType control descriptor. */
 interface ArgTypeControl {
@@ -43,6 +68,7 @@ export type ArgTypes = Record<string, ArgType>;
 export interface StoryContext {
   component?: { zodSchema?: ZodTypeAny } & Record<string, unknown>;
   argTypes?: ArgTypes;
+  parameters?: { zodSchema?: ZodTypeAny } & Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -318,9 +344,23 @@ export function zodSchemaToArgTypes(schema: ZodTypeAny): ArgTypes {
 /**
  * Storybook argTypes enhancer that auto-generates argTypes from Zod schemas.
  *
- * Reads `context.component.zodSchema` and merges the generated argTypes
- * with any existing ones. Existing argTypes (from react-docgen or manual
- * story-level overrides) take precedence.
+ * Discovers the Zod schema from (in priority order):
+ *   1. `context.component.zodSchema` — attached directly to the component
+ *   2. `context.parameters.zodSchema` — passed via story/meta parameters
+ *
+ * The second option lets consumers use the enhancer without modifying their
+ * components — just pass the schema in the story meta:
+ *
+ * ```ts
+ * import { mySchema } from './MyComponent';
+ * const meta = {
+ *   component: MyComponent,
+ *   parameters: { zodSchema: mySchema },
+ * };
+ * ```
+ *
+ * Merges generated argTypes with any existing ones. Existing argTypes
+ * (from react-docgen or manual story-level overrides) take precedence.
  *
  * Register in your `.storybook/preview.ts`:
  *
@@ -333,8 +373,8 @@ export function zodSchemaToArgTypes(schema: ZodTypeAny): ArgTypes {
  * @returns enhanced argTypes
  */
 export function zodArgTypesEnhancer(context: StoryContext): ArgTypes {
-  const { component, argTypes: existingArgTypes = {} } = context;
-  const zodSchema = component?.zodSchema;
+  const { component, parameters, argTypes: existingArgTypes = {} } = context;
+  const zodSchema = component?.zodSchema ?? parameters?.zodSchema;
 
   if (!zodSchema) {
     return existingArgTypes;

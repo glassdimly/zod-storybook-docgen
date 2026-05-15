@@ -42,30 +42,75 @@ export default {
 };
 ```
 
-### 2. Attach a Zod schema to your component
+### 2. Connect your Zod schema
+
+The enhancer discovers the schema from two places (checked in order):
+
+1. `component.zodSchema` — a static property on the component
+2. `parameters.zodSchema` — passed via story/meta parameters
+
+#### Option A: Pass the schema via parameters (recommended)
+
+This is the simplest approach and doesn't require modifying your components. Just import the schema in your story file and pass it through `parameters`:
+
+```tsx
+// MyButton.tsx
+import { z } from 'zod';
+
+export const propsSchema = z.object({
+  title: z.string().describe('The heading text'),
+  variant: z.enum(['primary', 'secondary']).default('primary'),
+  count: z.number().optional(),
+  disabled: z.boolean(),
+});
+
+type Props = z.infer<typeof propsSchema>;
+
+const MyButton = ({ title, variant = 'primary', count, disabled }: Props) => (
+  <button disabled={disabled}>
+    {title} ({variant}) {count !== undefined && `x${count}`}
+  </button>
+);
+
+export default MyButton;
+```
+
+```tsx
+// MyButton.stories.tsx
+import MyButton, { propsSchema } from './MyButton';
+
+const meta = {
+  component: MyButton,
+  parameters: { zodSchema: propsSchema },
+};
+
+export default meta;
+```
+
+#### Option B: Attach the schema to the component
+
+If you prefer a zero-config story experience, attach the schema directly to the component using the exported `FCWithZodSchema` type. The enhancer picks it up automatically — no per-story wiring needed.
 
 ```tsx
 import { z } from 'zod';
-import type { FC } from 'react';
+import type { FCWithZodSchema } from 'zod-storybook-docgen';
 
 const propsSchema = z.object({
   title: z.string().describe('The heading text'),
   variant: z.enum(['primary', 'secondary']).default('primary'),
   count: z.number().optional(),
   disabled: z.boolean(),
-  onClick: z.function(),
 });
 
 type Props = z.infer<typeof propsSchema>;
 
-const MyButton: FC<Props> & { zodSchema?: z.ZodTypeAny } = ({
+const MyButton: FCWithZodSchema<Props, typeof propsSchema> = ({
   title,
   variant = 'primary',
   count,
   disabled,
-  onClick,
 }) => (
-  <button disabled={disabled} onClick={onClick}>
+  <button disabled={disabled}>
     {title} ({variant}) {count !== undefined && `x${count}`}
   </button>
 );
@@ -74,8 +119,6 @@ MyButton.zodSchema = propsSchema;
 
 export default MyButton;
 ```
-
-That's it. Storybook will now show controls, types, defaults, and descriptions for all props defined in the schema.
 
 ### 3. Add descriptions with `.describe()`
 
@@ -158,7 +201,7 @@ const { output, changes } = migrateSource(sourceCode, 'MyComponent.tsx');
 
 The enhancer runs as a Storybook `argTypesEnhancer`. For each story, it:
 
-1. Checks `context.component.zodSchema` for an attached Zod schema
+1. Checks `context.component.zodSchema` for an attached Zod schema, falling back to `context.parameters.zodSchema`
 2. Unwraps wrapper types (`ZodOptional`, `ZodNullable`, `ZodDefault`, `ZodEffects`, `ZodBranded`, `ZodLazy`, etc.)
 3. Maps each field to a Storybook argType with the appropriate control
 4. Merges with any existing argTypes — **existing argTypes always take precedence**
@@ -230,16 +273,85 @@ const { output, changes } = migrateSource(code, 'schema.ts');
 ### Types
 
 ```ts
-import type { ArgType, ArgTypes, StoryContext } from 'zod-storybook-docgen';
+import type { ArgType, ArgTypes, StoryContext, FCWithZodSchema } from 'zod-storybook-docgen';
 import type { MigrateResult } from 'zod-storybook-docgen/migrate';
 ```
 
-## Integration with FCWithZodSchema
+#### `FCWithZodSchema<P, S>`
 
-If your codebase uses a pattern like `FCWithZodSchema` that attaches `.zodSchema` to components automatically, this package works out of the box with zero per-component config:
+A React function component type with an attached `.zodSchema` property. This is the type used by Option B (attaching the schema directly to the component).
 
 ```ts
-type FCWithZodSchema<P, S extends z.ZodType> = FC<P> & { zodSchema: S };
+type FCWithZodSchema<P = object, S extends ZodType = ZodType<P>> = FC<P> & {
+  zodSchema: S;
+};
+```
+
+| Parameter | Description |
+|---|---|
+| `P` | The component's props type (typically `z.infer<typeof schema>`) |
+| `S` | The Zod schema type (defaults to `ZodType<P>`) |
+
+**Usage with a simple component:**
+
+```tsx
+// MyButton.tsx
+import { z } from 'zod';
+import type { FCWithZodSchema } from 'zod-storybook-docgen';
+
+export const propsSchema = z.object({
+  label: z.string().describe('Button label'),
+  variant: z.enum(['primary', 'secondary']).default('primary'),
+});
+
+type Props = z.infer<typeof propsSchema>;
+
+const MyButton: FCWithZodSchema<Props, typeof propsSchema> = ({
+  label,
+  variant = 'primary',
+}) => <button className={variant}>{label}</button>;
+
+MyButton.zodSchema = propsSchema;
+
+export default MyButton;
+```
+
+When using `FCWithZodSchema`, the story file needs no extra configuration — the enhancer discovers the schema automatically:
+
+```tsx
+// MyButton.stories.tsx
+import MyButton from './MyButton';
+
+const meta = {
+  component: MyButton,
+  // No parameters.zodSchema needed — it's on the component itself
+};
+
+export default meta;
+```
+
+If the component does **not** use `FCWithZodSchema`, pass the schema via `parameters` instead:
+
+```tsx
+// MyButton.stories.tsx
+import MyButton, { propsSchema } from './MyButton';
+
+const meta = {
+  component: MyButton,
+  parameters: { zodSchema: propsSchema },
+};
+
+export default meta;
+```
+
+**Usage with a factory function:**
+
+If you have many components with Zod schemas, a factory helper reduces boilerplate:
+
+```ts
+import { z } from 'zod';
+import type { FC } from 'react';
+import type { FCWithZodSchema } from 'zod-storybook-docgen';
 
 function createComponent<S extends z.ZodObject<z.ZodRawShape>>(
   schema: S,
@@ -249,6 +361,12 @@ function createComponent<S extends z.ZodObject<z.ZodRawShape>>(
   Component.zodSchema = schema;
   return Component;
 }
+
+// Usage:
+const MyButton = createComponent(propsSchema, ({ label, variant }) => (
+  <button className={variant}>{label}</button>
+));
+// MyButton.zodSchema is set automatically — no per-story config needed
 ```
 
 ## License
